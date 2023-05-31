@@ -1,0 +1,59 @@
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+# Database (SQLite) setup
+import sqlite3
+
+conn = sqlite3.connect('users.db')
+c = conn.cursor()
+
+# Create users table if it doesn't exist
+
+# Insert sample users data
+user = [
+    (2, 'Pari Singh', 'Music, Cooking, Reading'),
+    (3, 'Naina Patel', 'Music, Chess, Dance'),
+    (4, 'Amy Bhatt', 'Cooking')
+]
+
+
+#CREATE TABLE user (
+    id INTEGER PRIMARY KEY,
+        name TEXT,
+        hobbies TEXT
+);
+
+INSERT INTO user (id,name, hobbies) VALUES (1,Pari Singh, 'Music,Chess,Drawing');
+INSERT INTO user (id,name, hobbies) VALUES (2,Naina Patel, 'Music,Chess,Dance');
+INSERT INTO user (id,name, hobbies) VALUES (3,Amy Bhatt, 'Cooking');
+
+
+
+@app.route('/match/<int:user_id>')
+def get_potential_matches(user_id):
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT hobbies FROM users WHERE id = ?', (user_id,))
+    user_hobbies = set(cursor.fetchone()[0].split(', '))
+
+    cursor.execute('SELECT id, name, hobbies FROM users WHERE id != ?', (user_id,))
+    potential_matches = []
+
+    for match_id, match_name, match_hobbies in cursor.fetchall():
+        match_hobbies = set(match_hobbies.split(', '))
+        compatibility_score = len(user_hobbies.intersection(match_hobbies))
+
+        if compatibility_score > 0:
+            potential_matches.append({
+                'id': match_id,
+                'name': match_name,
+                'hobbies': list(match_hobbies),
+                'compatibility_score': compatibility_score
+            })
+
+    potential_matches.sort(key=lambda x: x['compatibility_score'], reverse=True)
+    return jsonify(potential_matches)
+
+if __name__ == '__main__':
+    app.run()
